@@ -5,6 +5,8 @@ setwd("~/Documents/Year 2 Fall 2024/STP 530/Project/stp_530_repo")
 cab_df <- read.csv("cab_rides.csv")
 weather <- read.csv("weather.csv")
 
+nrow(time_cat_data)
+
 
 # ---------- MERGING THE CAB RIDES AND WEATHER DATA ---------- #
 
@@ -84,6 +86,10 @@ UberXL_data <- subset(cleaned_merged_data, name == "UberXL", select = c(-2, -8, 
 head(UberXL_data)
 
 
+
+
+
+
 # ----------- GROUPING DATE AND TIMES INTO TIME CATEGORIES ---------- #
 
 
@@ -111,6 +117,26 @@ time_cat_data <- cbind(UberXL_data, time_category)
 
 # Cab prices now has a new column of the time categories
 View(time_cat_data)
+
+
+# Export merged_df as a CSV file
+write.csv(time_cat_data, "time_cat_data.csv", row.names = FALSE)
+
+
+
+
+# --- TEST ---- #
+
+# Identifying duplicate rows in time_data
+library(dplyr)
+duplicates <- time_cat_data[duplicated(time_cat_data), ]
+
+View(duplicates)
+
+
+# Removing duplicate rows, keeping the first occurrence
+time_data_unique <- time_cat_data[!duplicated(time_cat_data), ]
+View(time_data_unique)
 
 
 
