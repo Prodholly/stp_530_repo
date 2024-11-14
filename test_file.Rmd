@@ -16,9 +16,60 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-summary(cars)
-a <- 5
-b <- 56
+# Set working directory
+setwd("~/Documents/Year 2 Fall 2024/STP 530/Project/stp_530_repo")
+
+# Read data
+cab_df <- read.csv("cab_rides.csv")
+weather <- read.csv("weather.csv")
+
+
+# ---------- MERGING THE CAB RIDES AND WEATHER DATA ---------- #
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(lubridate)
+library(tidyr)
+
+# Step 1: Convert timestamps to datetime
+cab_df$date_time <- as_datetime(cab_df$time_stamp / 1000, origin = "1970-01-01")
+weather$date_time <- as_datetime(weather$time_stamp, origin = "1970-01-01")
+
+# Step 2: Create merge_date column with consistent formatting
+cab_df <- cab_df %>%
+  mutate(
+    merge_date = paste0(source, " - ", format(date_time, "%Y-%m-%d"), " - ", sprintf("%02d", hour(date_time)))
+  )
+
+weather <- weather %>%
+  mutate(
+    merge_date = paste0(location, " - ", format(date_time, "%Y-%m-%d"), " - ", sprintf("%02d", hour(date_time)))
+  )
+
+# Step 3: Group by 'merge_date' with numeric-only averaging, and replace NA in 'rain' with 0
+groupby_value <- weather %>%
+  group_by(merge_date) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(rain = ifelse(is.na(rain), 0, rain))
+
+# Step 4: Merge without dropping NA values and inspect
+merged_df <- cab_df %>%
+  left_join(groupby_value, by = "merge_date", suffix = c("", "_w"))
+
+# Inspect NA patterns in the merged dataframe
+print("Summary of NA values in merged_df after fix:")
+print(colSums(is.na(merged_df)))
+
+# Display the first few rows, including rows with NAs
+print("Merged dataframe (first 10 rows):")
+(head(merged_df, 10))
+# View(merged_df)
+
+
+# ---------- 
+
 ```
 
 ## Including Plots
