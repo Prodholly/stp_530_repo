@@ -1,0 +1,13 @@
+##Simple Linear regression model
+Model1<-lm(price~distance, data=updated_time_cat_data)
+summary(Model1)
+###Interpretation: for one unit increase in distance, the average (expexted) price increases by 2.9531
+plot(updated_time_cat_data$distance, updated_time_cat_data$price)
+abline(Model1,col="blue",lwd=2)
+##Check for heteroskedasticity 
+plot(predict(Model1),residuals(Model1))
+#Check for normality of residuals
+qqnorm(residuals(Model1))
+qqline(residuals(Model1))
+anova(Model1)
+###########
