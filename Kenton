@@ -1,0 +1,93 @@
+############
+
+library(car)
+
+# Load your dataset
+updated_time_cat_data <- read.csv("time_cat_data.csv")  # Replace with your actual file path
+head(updated_time_cat_data)  # View the first few rows
+str(updated_time_cat_data)   # Inspect the structure of the dataset
+
+# Step 1: Inspect each variable
+summary(updated_time_cat_data)
+
+# Numeric variables: Histograms
+hist(updated_time_cat_data$price, main = "Histogram of Price", xlab = "Price", col = "lightblue", breaks = 20)
+hist(updated_time_cat_data$distance, main = "Histogram of Distance", xlab = "Distance", col = "lightblue", breaks = 20)
+
+# Categorical variables: Frequency table
+# (Replace "CATEGORY_VARIABLE" with the actual column names for categorical variables, if any exist.)
+# Example:
+# table(updated_time_cat_data$category_variable)
+# barplot(table(updated_time_cat_data$category_variable), main = "Frequency of CATEGORY_VARIABLE", col = "lightblue")
+
+# Step 2: Inspect bivariate relationships
+pairs(updated_time_cat_data, main = "Pairwise Scatterplots")
+
+# Scatterplot for distance and price
+plot(updated_time_cat_data$distance, updated_time_cat_data$price, 
+     main = "Scatterplot of Distance vs Price", 
+     xlab = "Distance", ylab = "Price", 
+     pch = 19, col = "blue")
+
+# Step 3: Fit a simple linear regression model
+Model1 <- lm(price ~ distance, data = updated_time_cat_data)
+summary(Model1)
+
+# Write out the model interpretation
+# price = Intercept + Coeff1 * distance
+cat("For one unit increase in distance, the average price increases by", round(coef(Model1)[2], 4), "\n")
+
+# Step 4: Check multicollinearity (if adding more predictors later)
+# (This is unnecessary for a simple linear regression model but will be relevant for multiple regression.)
+# vif(Model1)
+
+# Step 5: Residual diagnostics
+# Residual vs Fitted values
+plot(predict(Model1), residuals(Model1), 
+     main = "Residuals vs Predicted Values", 
+     xlab = "Predicted Values", ylab = "Residuals", 
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lty = 2)
+
+# Normality of residuals
+hist(residuals(Model1), main = "Histogram of Residuals", xlab = "Residuals", col = "lightblue", breaks = 20)
+qqnorm(residuals(Model1))
+qqline(residuals(Model1), col = "red")
+
+# Step 6: Detecting influential points
+# Cook's Distance
+cooks_d <- cooks.distance(Model1)
+influencePlot(Model1, id.list = list(labels = row.names(updated_time_cat_data)))
+
+# Add Cook's Distance to the dataset
+updated_time_cat_data$Cooks_d <- cooks_d
+
+# Identify highly influential points (threshold: 4/n)
+n <- nrow(updated_time_cat_data)
+high_influence <- which(cooks_d > (4/n))
+cat("Highly influential points:", high_influence, "\n")
+
+# DFBETAs
+dfbeta_values <- dfbetas(Model1)
+print(dfbeta_values)
+
+# Identify the most influential points for each predictor
+most_influential <- apply(dfbeta_values, 2, function(x) which.max(abs(x)))
+print(most_influential)
+
+# (Optional) Highlight influential points in scatterplot
+plot(updated_time_cat_data$distance, updated_time_cat_data$price, 
+     main = "Scatterplot of Distance vs Price (Influential Points Highlighted)", 
+     xlab = "Distance", ylab = "Price", 
+     pch = 19, col = "blue")
+points(updated_time_cat_data$distance[high_influence], 
+       updated_time_cat_data$price[high_influence], 
+       pch = 19, col = "red")
+legend("topright", legend = c("Normal Points", "Influential Points"), 
+       col = c("blue", "red"), pch = 19)
+
+# Step 7: Extend the analysis (if adding more predictors)
+# Fit a multiple regression model with additional predictors, if needed.
+# Example:
+# Model2 <- lm(price ~ distance + another_variable, data = updated_time_cat_data)
+# summary(Model2)
