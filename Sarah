@@ -1,4 +1,224 @@
-##Simple Linear regression model
+##cab_df <- read.csv("cab_rides.csv")
+weather <- read.csv("weather.csv")
+# Load necessary libraries
+library(dplyr)
+library(lubridate)
+
+# Step 1: Convert timestamps to datetime
+cab_df$date_time <- as_datetime(cab_df$time_stamp / 1000, origin = "1970-01-01")
+weather$date_time <- as_datetime(weather$time_stamp, origin = "1970-01-01")
+
+# Step 2: Create a consistent merge_date column for exact timestamp match
+# Both datasets will have merge_date including date, hour, minute, and second
+cab_df <- cab_df %>%
+  mutate(
+    merge_date = paste0(source, " - ", format(date_time, "%Y-%m-%d %H:%M:%S"))
+  )
+
+weather <- weather %>%
+  mutate(
+    merge_date = paste0(location, " - ", format(date_time, "%Y-%m-%d %H:%M:%S"))
+  )
+
+# Step 3: Aggregate weather data by exact merge_date (if needed)
+# Summarize numeric columns to ensure no duplicates for a single merge_date
+weather_grouped <- weather %>%
+  group_by(merge_date) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE), .groups = "drop") %>%
+  mutate(rain = ifelse(is.na(rain), 0, rain))  # Ensure NA in rain is replaced with 0
+
+# Step 4: Perform an exact join on the merge_date column
+final_merged_df <- cab_df %>%
+  inner_join(weather_grouped, by = "merge_date", suffix = c("", "_w"))
+
+# Step 5: Inspect the final merged data
+print("Summary of NA values in final_merged_df:")
+print(colSums(is.na(final_merged_df)))
+
+print("Final merged dataframe (first 10 rows):")
+print(head(final_merged_df, 10))
+View("final_merged_df")
+
+# This merged data gives exactly data in both cab df and weather have EXACTLY the same hour, minute and seconds
+# Hence, our merged data has 3,866 rows
+
+
+# --------- Drop Missing Values ------------ #
+
+# Number of missing values
+print("Total number of missing values:")
+sum(is.na(final_merged_df))
+
+# Columns with missing values and their counts
+print("Count of missing values by column:")
+updated_missing_values_df <- data.frame(colSums(is.na(final_merged_df))) # Keep columns with mssing values in data frame
+head(updated_missing_values_df) # View the first few rows
+
+# Count rows with at least one NA
+num_rows_with_na <- sum(apply(final_merged_df, 1, function(row) any(is.na(row))))
+
+# Print the result
+cat("Number of rows with at least one NA:", num_rows_with_na)
+
+# Here, only the price column has missing values, and there 318 of them
+# Price is the response variable, I will not suggest we do any imputation for it? I may consider it though!
+
+
+
+# If we decide to remove all missing values
+new_cleaned_merged_data <- drop_na(final_merged_df)
+head(new_cleaned_merged_data)
+
+# Confirm all missing values are removed
+print("Total number of missing values in cleaned merged data:")
+install.packages("tidyr")  # Install the package if not already installed
+library(tidyr)             # Load the package
+new_cleaned_merged_data <- drop_na(final_merged_df)
+##I used above codes instead of the follows
+sum(is.na(new_cleaned_merged_data))
+
+View(new_cleaned_merged_data)
+
+# This data has no missing values again
+
+# ----------- SELECT DATA WITH ONLY UBERXL IN IT ---------- #
+
+# ?subset
+
+# We need to pick data with UberXL alone
+
+# Removing cab type, id, product id, time stamp w - because we are not interested in these columns as they will not provide much value
+
+updated_UberXL_data <- subset(new_cleaned_merged_data, name == "UberXL", select = c(-2, -8, -9, -17))
+head(updated_UberXL_data)
+
+
+
+# ----------- GROUPING DATE AND TIMES INTO TIME CATEGORIES ---------- #
+
+
+# Calculate number of days between each timestamps and our reference timestamp (1543104000000)
+num_day <- (updated_UberXL_data$time_stamp-1543104000000)/(1000*60*60*24) 
+
+#Calculate day when data was queried (EST)
+day <- ceiling(num_day %% 7)
+day_word <- c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")[day]
+
+#Calculate hours since midnight within the day
+hours <- 24*(num_day-floor(num_day))
+time_category <- c() #vector to store the time categories
+v1 <- day_word %in% c("Fri", "Sat", "Sun") & ((hours >= 21 & hours <= 24) |  hours <= 3) 
+v2 <- day_word %in% c("Mon", "Tue", "Wed", "Thu", "Fri") & (hours >= 6 & hours <= 9)       
+v3 <- day_word %in% c("Mon", "Tue", "Wed", "Thu", "Fri") & (hours >= 16 & hours <= 19)    
+v4 <- !v1 & !v2 & !v3      
+time_category[v1] <- "Weekend_Nights" 
+time_category[v2] <- "Morning_Commute" 
+time_category[v3] <- "Evening_Commute" 
+time_category[v4] <- "Other_Times"
+
+# Append time category
+updated_time_cat_data <- cbind(updated_UberXL_data, time_category)
+# Cab prices now has a new column of the time categories
+View(updated_time_cat_data)
+
+
+# Export merged_df as a CSV file
+write.csv(updated_time_cat_data, "time_cat_data.csv", row.names = FALSE)
+getwd()
+######################
+library(ggplot2)
+
+ggplot(updated_time_cat_data, aes(x = distance, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. Distance",
+    x = "Distance",
+    y = "Price"
+  )
+ggplot(updated_time_cat_data, aes(x = temp, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. temperature",
+    x = "temperature",
+    y = "Price"
+  )
+
+ggplot(updated_time_cat_data, aes(x = rain, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. rain",
+    x = "rain",
+    y = "Price"
+  )
+pairs(~price+distance+time_stamp+temp+humidity+wind+rain, data=updated_time_cat_data, main = "Scatterplot Matrix")
+
+hist(updated_time_cat_data$price)
+hist(updated_time_cat_data$temp)
+hist(updated_time_cat_data$distance)
+hist(updated_time_cat_data$humidity)
+hist(updated_time_cat_data$rain)
+table(updated_time_cat_data$time_stamp)
+#############
+# Compute correlation matrix
+
+cor(updated_time_cat_data$price, updated_time_cat_data$distance, use = "complete.obs")
+cor(updated_time_cat_data$price, updated_time_cat_data$temp, use = "complete.obs")
+cor(updated_time_cat_data$price, updated_time_cat_data$rain, use = "complete.obs")
+cor(updated_time_cat_data$price, updated_time_cat_data$humidity, use = "complete.obs")
+cor(updated_time_cat_data$price, updated_time_cat_data$time_stamp, use = "complete.obs")
+cor(updated_time_cat_data$price, updated_time_cat_data$wind, use = "complete.obs")
+
+cor(updated_time_cat_data$temp, updated_time_cat_data$humidity, use = "complete.obs")
+cor(updated_time_cat_data$temp, updated_time_cat_data$rain, use = "complete.obs")
+cor(updated_time_cat_data$temp, updated_time_cat_data$distance, use = "complete.obs")
+cor(updated_time_cat_data$rain, updated_time_cat_data$distance, use = "complete.obs")
+########################
+reduced_1 <- lm(price ~ distance, data= updated_time_cat_data)
+full_1 <- lm(price ~ distance + temp + rain+time_stamp, data=updated_time_cat_data )
+anova(reduced_1, full_1)
+########
+##Creat a new dummy variables then check if any is significant
+updated_time_cat_data$freezing_cold <- ifelse(updated_time_cat_data$temp <= 32, 1, 0)
+cor(updated_time_cat_data$price, updated_time_cat_data$freezing_cold, use = "complete.obs")
+table(updated_time_cat_data$freezing_cold)
+summary(updated_time_cat_data$price)
+hist(updated_time_cat_data$freezing_cold)
+hist(updated_time_cat_data$temp)
+mo<- lm(price ~ updated_time_cat_data$freezing_cold, data=updated_time_cat_data )
+summary(mo)
+###############
+updated_time_cat_data$morning <- ifelse(updated_time_cat_data$time_category == 'Morning_Commute', 1, 0)
+cor(updated_time_cat_data$price, updated_time_cat_data$morning, use = "complete.obs")
+#####
+cor(updated_time_cat_data$price,updated_time_cat_data$Othertimes)
+low correlation
+updated_time_cat_data$Evening <- ifelse(updated_time_cat_data$time_category == 'Evening_Commute', 1, 0)
+cor(updated_time_cat_data$price, updated_time_cat_data$Evening, use = "complete.obs")
+##also low
+updated_time_cat_data$Othertimes <- ifelse(updated_time_cat_data$time_category == 'Other_Times', 1, 0)
+cor(updated_time_cat_data$price, updated_time_cat_data$Othertimes, use = "complete.obs")
+##also low
+#################
+full_1 <- lm(price ~ distance + temp + rain+time_stamp, data=updated_time_cat_data )
+summary(full_1)
+mo2 <- lm(price ~ distance + temp + temp:updated_time_cat_data$morning, data=updated_time_cat_data )
+summary(mo2)
+##no
+mo2 <- lm(price ~ distance + temp + temp:updated_time_cat_data$morning, data=updated_time_cat_data )
+cor(updated_time_cat_data$price,updated_time_cat_data$Othertimes)
+############
+freq_table <- table(updated_time_cat_data$source)
+updated_time_cat_data$Boston_University<- ifelse(updated_time_cat_data$source=='Boston University', 1, 0)
+cor(updated_time_cat_data$price,updated_time_cat_data$Boston_University)
+updated_time_cat_data$North_Station<- ifelse(updated_time_cat_data$source=='North Station', 1, 0)
+cor(updated_time_cat_data$price,updated_time_cat_data$North_Station)
+updated_time_cat_data$Financial_District<- ifelse(updated_time_cat_data$source=='Financial District', 1, 0)
+cor(updated_time_cat_data$price,updated_time_cat_data$Financial_District)
+###########
+Simple Linear regression model
 Model1<-lm(price~distance, data=updated_time_cat_data)
 summary(Model1)
 ###Interpretation: for one unit increase in distance, the average (expexted) price increases by 2.9531
@@ -11,3 +231,30 @@ qqnorm(residuals(Model1))
 qqline(residuals(Model1))
 anova(Model1)
 ###########
+library(ggplot2)
+
+ggplot(updated_time_cat_data, aes(x = distance, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. Distance",
+    x = "Distance",
+    y = "Price"
+  )
+ggplot(updated_time_cat_data, aes(x = temp, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. temperature",
+    x = "temperature",
+    y = "Price"
+  )
+
+ggplot(updated_time_cat_data, aes(x = rain, y = price, color = time_category)) +
+  geom_point(size = 3, shape = 19) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + # Adds a linear fit without confidence intervals
+  labs(
+    title = "Linear Fit of Price vs. rain",
+    x = "rain",
+    y = "Price"
+  )
