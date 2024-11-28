@@ -1,0 +1,116 @@
+install.packages("freqparcoord")
+library(freqparcoord)
+data("prgeng", package = "freqparcoord")
+help(prgeng)
+#Check the data set
+head(prgeng)     
+str(prgeng)       
+summary(prgeng)
+######
+help(prgeng, package = "freqparcoord")
+data(prgeng)
+# Examine the histogram of each variable to check the distribution and outliers,
+
+#remove rows with missing values of wageinc, wkswrkd and agenote that in this project we want to inclued only employed people 
+prgeng1 <- prgeng[prgeng$wageinc != 0, ]
+prgeng2 <- prgeng1[prgeng1$wkswrkd != 0, ]
+prgeng3 <- prgeng2[prgeng1$age != 0, ]
+prgeng4 <- prgeng3[prgeng1$powspuma != 0, ]
+prgeng5 <- prgeng4[prgeng1$age != 1, ]
+prgeng5[!complete.cases(prgeng5), ]
+
+# Remove rows with NA in specific column (e.g., wageinc)
+cleaned_data <- prgeng5[!is.na(prgeng5$wageinc), ]
+head(cleaned_data)
+summary(cleaned_data)
+head(cleaned_data)
+######
+##Examine the histogram of each variable to check the distribution and outliers,
+# be on the look for potential data entry errors.
+hist(cleaned_data$wageinc)
+# There is outlier(extremly large)
+##To make the graph clear, note that hist used for numerical data only
+hist(cleaned_data$wageinc, breaks = 50, main = "Salary distribution", xlab = "Annual salary")
+hist(cleaned_data$age, breaks = 50, main = "Age distribution", xlab = "Ages")#Normal with few oultier
+hist(cleaned_data$wkswrkd, breaks = 50, main = "Weeks worked distribution", xlab = "Weeks worked")##Not normal at all
+
+# Note: Use "na.action = na.exclude" to avoid lurking errors in R caused by NAs in the data.
+# If "na.action = na.exclude" is not specified, the default way lm() handles missing
+# data will result in outputs from predict(), fitted(), residuals(), etc. having
+# a different length than the original data -- all rows with missing data are removed.
+# Setting "na.action=na.exclude" asks R to pad the outputs from predict(), fitted(), 
+# residuals(), etc. with NA for those rows with missing data, so all the above 
+# outputs have the right correspondence. 
+
+MODEL<-lm(wageinc ~ age+educ+wkswrkd, data=cleaned_data, na.action=na.exclude)
+summary(MODEL)
+# Q-Q plot of the model
+qqnorm(residuals(MODEL))
+qqline(residuals(MODEL))#This is much better than mod , I think we must use this and not include categorical variables
+plot(fitted(MODEL), rstudent(MODEL))
+################################
+# Transform Y with log(), fit the new model, and repeat the diagnostics
+LOGMODEL<-lm(cleaned_data$log.wageinc~.,data=cleaned_data)
+# Residual plots of the log-transformed model
+plot(fitted(LOGMODEL), rstudent(LOGMODEL))
+######Violation of Linearity Assumption 
+### Impression: Most of the heteroskedasticity has NOT been fix! 
+# We can plot the residuals against the individual Xs again. 
+plot(cleaned_data$wageinc, residuals(LOGMODEL))
+plot(cleaned_data$age, residuals(LOGMODEL))
+plot(cleaned_data$educ, residuals(LOGMODEL))
+plot(cleaned_data$wkswrkd, residuals(LOGMODEL))
+plot(cleaned_data$engl, residuals(LOGMODEL))
+plot(cleaned_data$occ, residuals(LOGMODEL))###delete this variable
+plot(cleaned_data$sex, residuals(LOGMODEL))
+plot(cleaned_data$cit, residuals(LOGMODEL))
+plot(cleaned_data$powspuma, residuals(LOGMODEL))###
+plot(cleaned_data$yrentry, residuals(LOGMODEL))##?Do we need to use polynomial
+# Q-Q plot of the log-transformed model
+qqnorm(residuals(LOGMODEL))
+qqline(residuals(LOGMODEL))
+plot(fitted(LOGMODEL), rstudent(LOGMODEL))
+abline(h=0, col="red")
+# Impression
+##The log model is not good enough by qqnorm
+# You can use the following code to identify the outlier
+plot(fitted(LOGMODEL), rstudent(LOGMODEL), type='n')
+text(fitted(LOGMODEL), rstudent(LOGMODEL), names(rstudent(LOGMODEL)))
+rstudent(LOGMODEL)[21] # double check
+### I will stop working on log model (codes below belongs to log)
+
+#-------------------------------------------------------------------------------
+# Extra: Box-cox transformation
+
+# Use the following code to find out the optimal power lambda value
+
+lambda <- powerTransform(MODEL)$lambda
+lambda
+##When I tried MODEL the matrix is not invertable(error)
+#######
+Square transformation
+m22 <- lm(sqrt(wageinc) ~ age+educ+wkswrkd, data = cleaned_data)
+# Residual plot square transformed model
+plot(fitted(m22), rstudent(m22))
+##############
+# Q-Q plot of the square transformed model
+qqnorm(residuals(m22))
+qqline(residuals(m22))
+##much better than log transformation
+
+###Extra code if we need to use later
+y<-prgeng$wageinc
+x1<-prgeng$age
+x2<-prgeng$cit
+x3<-prgeng$educ
+x4<-prgeng$engl
+x5<-prgeng$occ
+x6<-prgeng$birth
+x7<-prgeng$wkswrkd
+x8<-prgeng$yrentry
+x9<-prgeng$powspuma
+x10<-prgeng$gender
+nonnative<-cleaned_data[cleaned_data$yrentry >0,]
+#########
+#
+####Now lets work on polynomial transformations, you can try categorizing continuous variables (e.g., age groups)
