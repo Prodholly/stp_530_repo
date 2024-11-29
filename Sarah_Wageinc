@@ -114,3 +114,18 @@ nonnative<-cleaned_data[cleaned_data$yrentry >0,]
 #########
 #
 ####Now lets work on polynomial transformations, you can try categorizing continuous variables (e.g., age groups)
+##Example: Two categorical predictors + one numeric predictor
+
+cleaned_data$sex.factor <- factor(cleaned_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
+cleaned_data$engl.factor <- factor(cleaned_data$engl, levels = c(0,10,11,20,21,30,31,40,41), labels = c("A", "B","C","D","E","F","G","H","I"))
+mt <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor + cleaned_data$engl.factor + cleaned_data$wkswrkd, data=cleaned_data)
+summary(mt)
+# Diagnostics
+plot(predict(mt), rstudent(mt))
+qqnorm(residuals(mt)); qqline(residuals(mt))
+
+mt1 <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor + cleaned_data$engl.factor, data=cleaned_data)
+summary(mt1)
+plot(predict(mt1), rstudent(mt1))
+qqnorm(residuals(mt1)); qqline(residuals(mt1))
+
