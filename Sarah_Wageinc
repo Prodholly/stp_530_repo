@@ -111,9 +111,7 @@ x8<-prgeng$yrentry
 x9<-prgeng$powspuma
 x10<-prgeng$gender
 nonnative<-cleaned_data[cleaned_data$yrentry >0,]
-#########
-#
-####Now lets work on polynomial transformations, you can try categorizing continuous variables (e.g., age groups)
+########
 ##Example: Two categorical predictors + one numeric predictor
 
 cleaned_data$sex.factor <- factor(cleaned_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
@@ -128,4 +126,95 @@ mt1 <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor + cleaned_data$engl.fac
 summary(mt1)
 plot(predict(mt1), rstudent(mt1))
 qqnorm(residuals(mt1)); qqline(residuals(mt1))
+#######################################################
+##############################################################
+#Example:(Explanation in my note)
+cleaned_data$sex.factor <- factor(cleaned_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
+m11<-lm(cleaned_data$wageinc ~ cleaned_data$sex.factor)
+summary(m11)
+# Multiple regression
+table(cleaned_data$wkswrkd)# table(cleaned_data$wkswrkd)is not continous fine ???
+ms1 <- lm(cleaned_data$wageinc ~ sex.factor + educ,data=cleaned_data)
+summary(ms1)
 
+ms2 <- lm(cleaned_data$wageinc ~ sex.factor + wkswrkd + sex.factor:wkswrkd,cleaned_data)
+summary(ms2)
+table(cleaned_data$wkswrkd)
+ms3 <- lm(cleaned_data$wageinc ~ sex.factor + wkswrkd ,cleaned_data)
+summary(ms3)
+
+# Observed data scatterplot: Male data
+
+ plot(cleaned_data$wkswrkd[cleaned_data$sex.factor == "Male"], cleaned_data$wageinc[cleaned_data$sex.factor == "Male"], 
+       +      col="blue", pch=3,
+       +      xlab="Number of weeks worked", ylab="Annual Salary", )
+
+# Observed data scatterplot: Add Female data
+ plot(
+   cleaned_data$wkswrkd[cleaned_data$sex.factor == "Female"], 
+   (nor worked)wageinc[cleaned_data$sex.factor == "Female"], 
+   col = "orange", 
+   pch = 5,
+   xlab = "Number of weeks worked", 
+   ylab = "Annual Salary"
+ )
+ 
+
+# Add the male regression line(not worked)
+
+new.data <- data.frame(cleaned_data$sex.factor="Male", cleaned_data$wkswrkd = seq(from=min(cleaned_data$wkswrkd, na.rm=T), to=max(cleaned_data$wkswrkd, na.rm=T), length.out=30))
+                       
+my.pred <- predict(ms1, newdata=new.data)
+
+lines(new.data$wkswrkd, my.pred, col="blue", pch=3, lwd=3)
+help(data.frame)
+
+# Add the female regression line
+
+new.data <- data.frame(sex.factor = "female",cleaned_data$wkswrkd = seq(from=min(cleaned_data$wkswrkd, na.rm=T), to=max(cleaned_data$wkswrkd, na.rm=T), length.out=30))
+                       
+
+my.pred <- predict(ms3, newdata=new.data)
+
+lines(new.data$bytests, my.pred, col="orange", pch=5, lwd=3)
+###############################################################################################################
+# Legend
+
+legend("bottomright", legend=c("Male", "Female"), col=c("blue", "orange"), pch=c(3, 5))
+#########Google help
+# Step 1: Plot male data
+plot(
+  cleaned_data$wkswrkd[cleaned_data$sex.factor == "Male"], 
+  cleaned_data$wageinc[cleaned_data$sex.factor == "Male"], 
+  col = "blue", 
+  pch = 3, 
+  xlab = "Number of weeks worked", 
+  ylab = "Annual Salary"
+)
+
+# Step 2: Add female data to the same plot
+points(
+  cleaned_data$wkswrkd[cleaned_data$sex.factor == "Female"], 
+  cleaned_data$wageinc[cleaned_data$sex.factor == "Female"], 
+  col = "orange", 
+  pch = 5
+)
+
+# Step 3: Fit a linear model for male data and add the regression line
+male_model <- lm(wageinc ~ wkswrkd, data = cleaned_data, subset = (sex.factor == "Male"))
+abline(male_model, col = "blue", lwd = 2)  # Blue line for male regression
+
+# Step 4: Fit a linear model for female data and add the regression line
+female_model <- lm(wageinc ~ wkswrkd, data = cleaned_data, subset = (sex.factor == "Female"))
+abline(female_model, col = "orange", lwd = 2)  # Orange line for female regression
+
+# Step 5: Add a legend to distinguish the points and lines
+legend(
+  "topright", 
+  legend = c("Male", "Female"), 
+  col = c("blue", "orange"), 
+  pch = c(3, 5), 
+  lwd = 2
+)
+
+##################################################################################################################
