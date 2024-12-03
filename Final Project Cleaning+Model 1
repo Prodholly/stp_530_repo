@@ -1,0 +1,99 @@
+install.packages("freqparcoord")
+library(freqparcoord)
+data("prgeng", package = "freqparcoord")
+help(prgeng)
+#Check the data set
+head(prgeng)     
+str(prgeng)       
+summary(prgeng)
+######
+help(prgeng, package = "freqparcoord")
+data(prgeng)
+#remove rows with missing values of wageinc, zero wkswrkd and age below 16 since in this project we want to inclued only employed people. Also remove palce of work if not specified as in Census 2000 pdf. 
+prgeng1 <- prgeng[prgeng$wageinc != 0, ]
+prgeng2 <- prgeng1[prgeng1$wkswrkd != 0, ]
+prgeng3 <- prgeng2[prgeng1$age != 0, ]
+prgeng4 <- prgeng3[prgeng1$powspuma != 0, ]
+prgeng5 <- prgeng4[prgeng1$age != 1, ]
+prgeng5[!complete.cases(prgeng5), ]
+cleaned_data <- prgeng5[!is.na(prgeng5$wageinc), ]
+any(cleaned_data$age < 16)
+#############
+head(cleaned_data)
+summary(cleaned_data)
+#################
+#Dependent variable Y wages
+sd(cleaned_data$wageinc, na.rm=T)
+##Examine the histogram of each numerical variable to check the distribution and outliers,
+# be on the look for potential data entry errors.Also find summary of numerical data
+hist(cleaned_data$wageinc)# extrem values(outlier existis)
+hist(cleaned_data$wkswrkd)
+hist(cleaned_data$age)
+summary(cleaned_data$wageinc)
+summary(cleaned_data$age)
+summary(cleaned_data$wkswrkd)# On average employees take only 3 vacation weeks per year
+## Investigate levels and frequency distributions of each categorical variable 
+table(cleaned_data$engl)
+table(cleaned_data$cit)
+table(cleaned_data$educ)
+table(cleaned_data$powspuma)
+table(cleaned_data$occ)
+table(cleaned_data$birth)
+table(cleaned_data$yrentry)
+###########
+#Question 1: Does the wages differ between males and females programms and engineers?
+cleaned_data$sex.factor <- factor(cleaned_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
+table(cleaned_data$sex.factor)
+m1 <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor)
+summary(m1) #There is 134177% of standaed deviation difference between males and females
+#with small p value, R squared is very low.
+# The variable sex only explains about 1% of variation in wages.
+#Question 2: Does highly gender difference still exist
+#after adding the numerical variables number of weeks worked ?
+m2<-lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd+cleaned_data$sex.factor)
+vif(m2)
+summary(m2)#Females still have significantly low wages even after adding 
+#number of weeks worked.
+#This model explain wages more than model1.
+anova(m2)
+# Research Question 3: Does the relationship between number of weeks worked
+#and wages differ for the two 
+# genders?
+#Add interaction term.
+m3 <- lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd + cleaned_data$sex.factor + cleaned_data$sex.factor:cleaned_data$wkswrkd)
+vif(m3) 
+# VIFs are very high due to the interaction term
+summary(m3)
+###
+# Graph
+
+# Observed data scatterplot: Male data
+
+plot(cleaned_data$wkswrkd[sex.factor == "male"], cleaned_data$wageinc[sex.factor == "male"], 
+     col="blue", pch=3,
+     xlab="Number of weeks worked", ylab="wages", )
+
+# Observed data scatterplot: Add female data
+
+points(cleaned_data$wkswrkd[sex.factor == "female"], cleaned_data$wageinc[sex.factor == "female"], 
+       col="orange", pch=5)
+#  Fit a linear model for male data and add the regression line
+male_model <- lm(wageinc ~ wkswrkd, data = cleaned_data, subset = (sex.factor == "Male"))
+abline(male_model, col = "blue", lwd = 2)  # Blue line for male regression
+
+# Fit a linear model for female data and add the regression line
+female_model <- lm(wageinc ~ wkswrkd, data = cleaned_data, subset = (sex.factor == "Female"))
+abline(female_model, col = "orange", lwd = 2)  # Orange line for female regression
+
+#  Add a legend to distinguish the points and lines
+legend(
+  "topright", 
+  legend = c("Male", "Female"), 
+  col = c("blue", "orange"), 
+  pch = c(3, 5), 
+  lwd = 2
+)
+#At lower numbers of weeks worked,
+#both male and female have similar wages with intersection in lower number of weeks worked.However,
+#as number of worked weeks increases the gap becomes wider with higher wages for males.
+
