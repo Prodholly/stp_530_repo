@@ -1,0 +1,60 @@
+#Initial look at Complete Model
+m <-lm(wageinc ~ age+cit+educ+engl+occ+birth+wkswrkd+yrentry+powspuma+sex, data=cleaned_data, na.action=na.exclude)
+summary(m)
+pairs(cleaned_data)
+install.packages("car")
+library(car)
+vif(m)
+#####
+# Diagnostics
+plot(predict(m), rstudent(m))
+abline(h = 0, col = "blue", lty = 2)  # Horizontal line at y = 0
+qqnorm(residuals(m)); qqline(residuals(m))
+# High vif for cit, birth and yrentry also these variables are not statistically significant, so we decided to drop them.
+#Model m1
+m1 <-lm(wageinc ~ age+educ+engl+occ+wkswrkd+sex, data=cleaned_data, na.action=na.exclude)
+summary(m1)
+# Diagnostics
+#Initial look at Complete Model
+m <-lm(wageinc ~ age+cit+educ+engl+occ+birth+wkswrkd+yrentry+powspuma+sex, data=cleaned_data, na.action=na.exclude)
+summary(m)
+pairs(cleaned_data)
+install.packages("car")
+library(car)
+vif(m)
+#####
+# Diagnostics
+plot(predict(m), rstudent(m))
+abline(h = 0, col = "blue", lty = 2)  # Horizontal line at y = 0
+qqnorm(residuals(m)); qqline(residuals(m))
+# High vif for cit, birth and yrentry also these variables are not statistically significant, so we decided to drop them.
+#Model m1
+m1 <-lm(wageinc ~ age+educ+engl+occ+wkswrkd+sex, data=cleaned_data, na.action=na.exclude)
+summary(m1)
+plot(predict(m1), rstudent(m1))
+abline(h = 0, col = "red", lty = 2)  # Horizontal line at y = 0
+qqnorm(residuals(m1)); qqline(residuals(m1))
+################
+#Interaction regresssion Model
+m3<-lm(wageinc ~ age+educ+engl+occ+wkswrkd+sex+educ:wkswrkd, data=cleaned_data, na.action=na.exclude)
+summary(m3)
+vif(m3)# Found very large vif values
+anova(m1)
+anova(m3)
+anova(m1,m3)
+me <-lm(wageinc ~ educ, data=cleaned_data, na.action=na.exclude)
+summary(me)
+anova(me)
+mw <-lm(wageinc ~ wkswrkd, data=cleaned_data, na.action=na.exclude)
+summary(mw)
+anova(mw)
+
+###Trying more interaction terms 
+m4 <-lm(wageinc ~ age+educ+engl+occ+wkswrkd+sex+age:wkswrkd, data=cleaned_data, na.action=na.exclude)
+summary(m4)
+anova(m4)
+###############
+m5<-lm(wageinc ~ age+educ+engl+occ+wkswrkd+sex+age:educ, data=cleaned_data, na.action=na.exclude)
+summary(m5)
+anova(m5)
+#############
