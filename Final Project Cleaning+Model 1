@@ -41,29 +41,29 @@ table(cleaned_data$occ)
 table(cleaned_data$birth)
 table(cleaned_data$yrentry)
 ###########
-#Question 1: Does the wages differ between males and females programms and engineers?
+#Question 1: Does the wages differ between males and females programmers and engineers?
 cleaned_data$sex.factor <- factor(cleaned_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
 table(cleaned_data$sex.factor)
-m1 <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor)
-summary(m1) #There is 134177% of standaed deviation difference between males and females
+mg1 <- lm(cleaned_data$wageinc ~ cleaned_data$sex.factor)
+summary(mg1) #There is 134177% of standaed deviation difference between males and females
 #with small p value, R squared is very low.
 # The variable sex only explains about 1% of variation in wages.
 #Question 2: Does highly gender difference still exist
 #after adding the numerical variables number of weeks worked ?
-m2<-lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd+cleaned_data$sex.factor)
-vif(m2)
-summary(m2)#Females still have significantly low wages even after adding 
+mgw<-lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd+cleaned_data$sex.factor)
+vif(mgw)
+summary(mgw)#Females still have significantly low wages even after adding 
 #number of weeks worked.
 #This model explain wages more than model1.
-anova(m2)
+anova(mgw)
 # Research Question 3: Does the relationship between number of weeks worked
 #and wages differ for the two 
 # genders?
 #Add interaction term.
-m3 <- lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd + cleaned_data$sex.factor + cleaned_data$sex.factor:cleaned_data$wkswrkd)
-vif(m3) 
+mg2 <- lm(cleaned_data$wageinc ~ cleaned_data$wkswrkd + cleaned_data$sex.factor + cleaned_data$sex.factor:cleaned_data$wkswrkd)
+vif(mg2) 
 # VIFs are very high due to the interaction term
-summary(m3)
+summary(mg2)
 ###
 # Graph
 
