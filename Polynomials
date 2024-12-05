@@ -1,0 +1,33 @@
+#### Polynomial 
+
+model.F <- lm(wageinc ~ age + I(age^2) + cit + educ + engl + occ + birth + sex + wkswrkd + yrentry + powspuma, data = cleaned_data)
+summary(model.F)
+
+plot(fitted(model.F), rstudent(model.F))
+abline(h=0, col="red")
+summary(model.F)
+plot(model.F)
+
+model.R <- lm(wageinc ~ age + cit + educ + engl + occ + birth + sex + wkswrkd + yrentry + powspuma, data = cleaned_data)
+plot(fitted(model.R), rstudent(model.R))
+abline(h=0, col="red")
+summary(model.R)
+plot(model.R)
+
+
+anova(model.R, model.F)
+
+
+# ------- POLYNOMIALS 2
+
+model1 <- lm(formatted_data$wageinc ~ age + cit + educ + engl + occ + sex + wkswrkd +I(wkswrkd^2), data = formatted_data)
+plot(fitted(model1), rstudent(model1))
+abline(h=0, col="red")
+summary(model1)
+plot(model1)
+
+model2 <- lm(formatted_data$wageinc ~ age + cit + educ + engl + occ + sex + wkswrkd +wkswrkd:educ, data = formatted_data)
+plot(fitted(model2), rstudent(model2))
+abline(h=0, col="red")
+summary(model2)
+plot(model2)
